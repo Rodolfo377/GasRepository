@@ -6,6 +6,8 @@
 #include "GameFramework/PlayerController.h"
 #include "BrainComponent.h"
 #include "AttributeSetBase.h"
+#include "PlayerControllerBase.h"
+#include "GameplayAbilityBase.h"
 
 // Sets default values
 ACharacterBase::ACharacterBase()
@@ -60,6 +62,22 @@ void ACharacterBase::AcquireAbility(TSubclassOf<UGameplayAbility> AbilityToAcqui
 	}
 }
 
+void ACharacterBase::AcquireAbilities(TArray<TSubclassOf<UGameplayAbility>> AbilitiesToAcquire)
+{
+	for (TSubclassOf<UGameplayAbility> AbilityItem : AbilitiesToAcquire)
+	{
+		AcquireAbility(AbilityItem);
+		if (AbilityItem->IsChildOf(UGameplayAbilityBase::StaticClass()))
+		{
+			TSubclassOf<UGameplayAbilityBase> AbilityBaseClass = *AbilityItem;
+			if (AbilityBaseClass)
+			{
+				AddAbilityToUI(AbilityBaseClass);
+			}
+		}
+	}
+}
+
 void ACharacterBase::OnHealthChanged(float Health, float MaxHealth)
 {
 	if (Health <= 0.f && !bIsDead)
@@ -102,6 +120,12 @@ void ACharacterBase::RemoveGameplayTag(FGameplayTag TagToRemove)
 	GetAbilitySystemComponent()->RemoveLooseGameplayTag(TagToRemove);
 }
 
+void ACharacterBase::HitStun(float StunDuration)
+{
+	DisableInputControl();
+	GetWorldTimerManager().SetTimer(StunTimeHandle, this, &ACharacterBase::EnableInputControl, StunDuration, false);
+}
+
 void ACharacterBase::AutoDetermineTeamIdByControllerType()
 {
 	if (GetController() && GetController()->IsPlayerController())
@@ -112,13 +136,45 @@ void ACharacterBase::AutoDetermineTeamIdByControllerType()
 
 void ACharacterBase::Dead()
 {
-	if(APlayerController* PC = Cast<APlayerController>(GetController()))
+	DisableInputControl();
+}
+
+void ACharacterBase::DisableInputControl()
+{
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		PC->DisableInput(PC);
 	}
 	if (AAIController* AIC = Cast<AAIController>(GetController()))
 	{
 		AIC->GetBrainComponent()->StopLogic("Dead");
+	}
+}
+
+void ACharacterBase::EnableInputControl()
+{
+	if (!bIsDead)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			PC->EnableInput(PC);
+		}
+		if (AAIController* AIC = Cast<AAIController>(GetController()))
+		{
+			AIC->GetBrainComponent()->RestartLogic();
+		}
+	}	
+}
+
+void ACharacterBase::AddAbilityToUI(TSubclassOf<UGameplayAbilityBase> AbilityToAdd)
+{
+	if (APlayerControllerBase* PlayerControllerBase = Cast<APlayerControllerBase>(GetController()))
+	{
+		if (UGameplayAbilityBase* AbilityInstance = AbilityToAdd.Get()->GetDefaultObject<UGameplayAbilityBase>())
+		{
+			FGameplayAbilityInfo AbilityInfo = AbilityInstance->GetAbilityInfo();
+			PlayerControllerBase->AddAbilityToUI(AbilityInfo);
+		}
 	}
 }
 

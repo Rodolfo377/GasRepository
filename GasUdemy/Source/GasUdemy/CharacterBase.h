@@ -10,6 +10,7 @@
 #include "CharacterBase.generated.h"
 
 class UAttributeSetBase;
+class UGameplayAbilityBase;
 
 UCLASS()
 class GASUDEMY_API ACharacterBase : public ACharacter, public IAbilitySystemInterface
@@ -41,6 +42,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "CharacterBase")
 	void AcquireAbility(TSubclassOf<UGameplayAbility> AbilityToAcquire);
+
+	UFUNCTION(BlueprintCallable, Category = "CharacterBase")
+	void AcquireAbilities(TArray<TSubclassOf<UGameplayAbility>> AbilityToAcquire);
 
 	UFUNCTION()
 	void OnHealthChanged(float Health, float MaxHealth);
@@ -76,9 +80,18 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CharacterBase")
 	FGameplayTag FullHealthTag;
+
+	UFUNCTION(BlueprintCallable, Category = "CharacterBase")
+	void HitStun(float StunDuration);
+
 protected:
 	bool bIsDead;
 	uint8 TeamId;
 	void AutoDetermineTeamIdByControllerType();
 	void Dead();
+	void DisableInputControl();
+	void EnableInputControl();
+
+	FTimerHandle StunTimeHandle;
+	void AddAbilityToUI(TSubclassOf<UGameplayAbilityBase> AbilityToAdd);
 };
