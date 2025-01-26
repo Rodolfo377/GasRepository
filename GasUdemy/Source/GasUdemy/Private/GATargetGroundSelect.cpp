@@ -23,6 +23,7 @@ void AGATargetGroundSelect::StartTargeting(UGameplayAbility* Ability)
 {
 	OwningAbility = Ability;
 	MasterPC = Cast<APlayerController>(Ability->GetOwningActorFromActorInfo()->GetInstigatorController());
+	Decal->DecalSize = FVector(Radius);
 }
 
 void AGATargetGroundSelect::Tick(float DeltaSeconds)
